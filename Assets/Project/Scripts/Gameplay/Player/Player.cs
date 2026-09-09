@@ -1,5 +1,7 @@
 using UnityEngine;
 using LevelDesign.Gameplay.Levels;
+using LevelDesign.Data;
+using UnityEngine.SceneManagement;
 
 namespace LevelDesign.Systems.Player
 {
@@ -8,19 +10,49 @@ namespace LevelDesign.Systems.Player
         [Header("State Machine")]
         [SerializeField] private PlayerStateMachine PSM;
         
-        [Header("Managers")]
+        [Header("Controllers")]
         [SerializeField] private PlayerCamera playerCamera;
         [Space]
         [SerializeField] private _MovementController playerCharacter;
 
         [Header("Managers")]
         [SerializeField] private CharacterDataManager characterDataM;
+        [SerializeField] private UIManager uiM;
+        [Space]
         [SerializeField] private CheckpointManager checkpointM;
+        public Health healthM;
+
+        [Header("Events")]
+        [SerializeField] private KillPlayerEventChannelSO e_killPlayer;
+        [SerializeField] private CinematicCameraEventChannelSO e_cinematicCamera;
 
         private Transform cameraFocalTarget;
         private Transform spectatorCameraTarget;
 
         #region Unity Calls
+        private void OnEnable() {
+            if(e_killPlayer != null) {
+                e_killPlayer.OnKillRequested += KillPlayer;
+            }
+
+            if(e_cinematicCamera != null) {
+                e_cinematicCamera.OnRequestCamera += SetAndLoadCinematic;
+                e_cinematicCamera.OnReleaseCamera += ExitCinematic;
+            }
+        }
+
+        private void OnDisable() {
+            if(e_killPlayer != null) {
+                e_killPlayer.OnKillRequested -= KillPlayer;
+            }
+
+            if(e_cinematicCamera != null) {
+                e_cinematicCamera.OnRequestCamera -= SetAndLoadCinematic;
+                e_cinematicCamera.OnReleaseCamera -= ExitCinematic;
+            }
+
+        }
+
         private void Start() {
             playerCamera.Initialize(PSM);
             characterDataM.Initialize();
@@ -42,12 +74,11 @@ namespace LevelDesign.Systems.Player
         #region Controllers
         // Both
         public void ProcessControllers() {
-            if(playerCamera != null)
+            if (playerCamera != null)
             {
                 playerCamera.UpdateCameraInput();
-                playerCamera.UpdateRotation();
             }
-            if(playerCharacter != null && playerCamera != null)
+            if (playerCharacter != null && playerCamera != null)
             {
                 playerCharacter._UpdateBody(Time.deltaTime);
             }
@@ -62,24 +93,14 @@ namespace LevelDesign.Systems.Player
             if (!PSM.isCinematic)
             {
                 spectatorCameraTarget = null;
-                if(playerCharacter != null)
-                {
-                    cameraFocalTarget = playerCharacter._GetCameraTarget();
-                }
+                cameraFocalTarget = playerCharacter._GetCameraTarget();
                 playerCamera.UpdatePosition(cameraFocalTarget);
+                playerCamera.SetRotation(new Vector3(90f, 0f, 0f)); 
             }
-            else
+            else if (spectatorCameraTarget != null)
             {
-                if (spectatorCameraTarget == null)
-                {
-                    return;
-                }
-
-                if (spectatorCameraTarget != null)
-                {
-                    playerCamera.UpdatePositionSmooth(spectatorCameraTarget);
-                    playerCamera.UpdateRotationSmooth(spectatorCameraTarget.transform.eulerAngles);
-                }
+                playerCamera.UpdatePositionSmooth(spectatorCameraTarget);
+                playerCamera.UpdateRotationSmooth(spectatorCameraTarget.eulerAngles);
             }
         }
 
@@ -95,8 +116,9 @@ namespace LevelDesign.Systems.Player
 
                 playerCharacter = characterDataM.currentMovementController;
                 playerCharacter._Initialize(PSM);
+                healthM = playerCharacter.GetComponent<Health>();
 
-                if(checkpointM != null) {
+                if(checkpointM != null && checkpointM.SpawnPoint != null) {
                     playerCharacter._Teleport(checkpointM.SpawnPoint.position);
                 }
             }
@@ -123,6 +145,15 @@ namespace LevelDesign.Systems.Player
 
         public void ExitCinematic() {
             PSM.isCinematic = false;
+        }
+
+        public void KillPlayer()
+        {
+            playerCharacter._Teleport(checkpointM.SpawnPoint.position);
+
+            if(healthM != null) {
+                healthM.ResetHealth();
+            }
         }
         #endregion
     }
