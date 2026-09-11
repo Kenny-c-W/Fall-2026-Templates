@@ -23,7 +23,7 @@ namespace LevelDesign.Systems.Enemy
         [SerializeField] private float searchInterval = 0.5f;
 
         [Header("Drops")]
-        [SerializeField] private bool dropsKey;
+        [SerializeField] private bool dropsKey = false;
         [SerializeField] private GameObject keyFab;
 
         private Rigidbody rb;
@@ -75,6 +75,10 @@ namespace LevelDesign.Systems.Enemy
         {
             _MovementController controller = FindObjectOfType<_MovementController>();
             if(controller != null) { target = controller.transform; }
+        }
+        public void KeyDrop()
+        {
+            dropsKey = true;
         }
 
         public void KillMelee()
