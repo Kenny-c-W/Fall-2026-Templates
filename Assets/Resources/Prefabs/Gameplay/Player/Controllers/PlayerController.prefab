@@ -1329,7 +1329,7 @@ MonoBehaviour:
   sprintSpeed: 7
   airSpeed: 3
   airAcceleration: 70
-  jumpSpeed: 13
+  jumpSpeed: 20
   coyoteTime: 0.35
   dashSpeed: 44
   dashDuration: 0.04

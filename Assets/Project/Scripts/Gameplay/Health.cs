@@ -79,5 +79,9 @@ namespace LevelDesign.Systems
 
         private void HandleCinematicStart(Transform _) => inCinematic = true;
         private void HandleCinematicEnd() => inCinematic = false;
+        public void Fell()
+        {
+            Current = 0f;
+        }
     }
 }
